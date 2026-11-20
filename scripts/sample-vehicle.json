@@ -1,0 +1,43 @@
+{
+  "make": "BMW",
+  "model": "M3 Competition",
+  "generation": "G80",
+  "year": 2023,
+  "domain": "Road",
+  "sub_category": "High-Performance Sports Saloon",
+  "hero_image": "https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1600&q=80",
+  "summary": "The benchmark executive performance sedan. Powered by the twin-turbocharged S58 inline-six engine with 503 HP, rear-biased M xDrive AWD or pure RWD, and track-honed chassis dynamics.",
+  "powertrain": {
+    "engine_type": "3.0L BMW M TwinPower Turbo Inline-6 (S58)",
+    "displacement_l": 3.0,
+    "layout": "Front Longitudinal",
+    "aspiration": "Twin-Turbocharged",
+    "hp": 503,
+    "kw": 375,
+    "torque_nm": 650,
+    "transmission": "8-Speed M Steptronic with Drivelogic",
+    "drivetrain": "RWD",
+    "fuel_type": "Petrol 98 RON",
+    "redline_rpm": 7200
+  },
+  "chassis": {
+    "curb_weight_kg": 1730,
+    "length_mm": 4794,
+    "width_mm": 1903,
+    "height_mm": 1433,
+    "wheelbase_mm": 2857,
+    "chassis_type": "Steel/Aluminium Monocoque",
+    "suspension_front": "Adaptive M Double-Joint Spring Strut",
+    "suspension_rear": "Adaptive M Five-Link Axle",
+    "brakes_front": "380mm 6-piston fixed caliper",
+    "brakes_rear": "370mm single-piston floating caliper",
+    "wheels_tires": "Front: 275/35 ZR19 | Rear: 285/30 ZR20 Michelin Pilot Sport 4S"
+  },
+  "domain_specific": {
+    "zero_to_hundred_sec": 3.8,
+    "top_speed_kmh": 290,
+    "drag_coefficient": 0.33,
+    "status": "Production",
+    "signature_feature": "Carbon fiber roof & aggressive frameless kidney grille"
+  }
+}

@@ -23,7 +23,7 @@ interface HomeExplorerClientProps {
 }
 
 const DOMAINS = [
-  { label: 'All Fleet', value: 'All', icon: Layers },
+  { label: 'All', value: 'All', icon: Layers },
   { label: 'Road', value: 'Road', icon: Car },
   { label: 'Commercial', value: 'Commercial', icon: Truck },
   { label: 'Motorsport', value: 'Motorsport', icon: Trophy },
@@ -152,57 +152,50 @@ export default function HomeExplorerClient({ initialVehicles }: HomeExplorerClie
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-      {/* Clean Minimal Hero Header */}
-      <div className="mb-10 text-center max-w-3xl mx-auto space-y-4">
-        <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-[#31bacc]/10 border border-[#31bacc]/30 text-[#177f8d] dark:text-[#31bacc] text-xs font-mono font-semibold">
-          <span className="w-2 h-2 rounded-full bg-[#31bacc] animate-pulse" />
-          <span>Universal Vehicle Specification & Community Archive</span>
-        </div>
-
+      {/* Hero */}
+      <div className="mb-10 text-center max-w-2xl mx-auto space-y-3">
         <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-          Precision Vehicle Telemetry.
+          Every machine, every spec.
         </h1>
-
-        <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed font-sans">
-          Explore benchmark specifications across road supercars, commercial haulage, and Le Mans prototypes. Upvote your favorite machines and share engineering insights.
+        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 leading-relaxed">
+          Road cars, commercial trucks, and motorsport prototypes — compared side by side.
         </p>
 
-        {/* Minimal Stats Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-          <div className="p-3 rounded-xl bg-white dark:bg-[#101623] border border-slate-200/80 dark:border-[#1E293B] shadow-xs">
-            <span className="block text-[10px] uppercase font-mono text-slate-400">Archived Fleet</span>
-            <span className="text-lg font-black text-slate-900 dark:text-white font-mono">
+        {/* Stats strip — magazine masthead style */}
+        <div className="flex items-center justify-center gap-8 pt-4">
+          <div className="text-center">
+            <div className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">
               {stats.totalVehicles}
-            </span>
+            </div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">vehicles</div>
           </div>
-
-          <div className="p-3 rounded-xl bg-white dark:bg-[#101623] border border-slate-200/80 dark:border-[#1E293B] shadow-xs">
-            <span className="block text-[10px] uppercase font-mono text-slate-400">Total Upvotes</span>
-            <span className="text-lg font-black text-[#177f8d] dark:text-[#31bacc] font-mono flex items-center justify-center space-x-1">
-              <ArrowUp className="w-4 h-4" />
-              <span>{stats.totalVotes}</span>
-            </span>
+          <div className="w-px h-8 bg-slate-200 dark:bg-slate-700" />
+          <div className="text-center">
+            <div className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">
+              {stats.totalVotes}
+            </div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">upvotes</div>
           </div>
-
-          <div className="p-3 rounded-xl bg-white dark:bg-[#101623] border border-slate-200/80 dark:border-[#1E293B] shadow-xs">
-            <span className="block text-[10px] uppercase font-mono text-slate-400">Peak Power</span>
-            <span className="text-lg font-black text-slate-900 dark:text-white font-mono">
-              {stats.maxHp} HP
-            </span>
+          <div className="w-px h-8 bg-slate-200 dark:bg-slate-700" />
+          <div className="text-center">
+            <div className="text-2xl font-black text-[#177f8d] dark:text-[#31bacc] tabular-nums">
+              {stats.maxHp}
+            </div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">peak HP</div>
           </div>
-
-          <div className="p-3 rounded-xl bg-white dark:bg-[#101623] border border-slate-200/80 dark:border-[#1E293B] shadow-xs">
-            <span className="block text-[10px] uppercase font-mono text-slate-400">Peak HP/Ton</span>
-            <span className="text-lg font-black text-[#177f8d] dark:text-[#31bacc] font-mono">
+          <div className="w-px h-8 bg-slate-200 dark:bg-slate-700" />
+          <div className="text-center">
+            <div className="text-2xl font-black text-[#177f8d] dark:text-[#31bacc] tabular-nums">
               {stats.bestRatio}
-            </span>
+            </div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">HP/ton</div>
           </div>
         </div>
       </div>
 
-      {/* Clean Search & Filter Control Bar */}
+      {/* Search & Filters */}
       <div className="bg-white dark:bg-[#101623] rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-[#1E293B] shadow-xs mb-8 space-y-4">
-        {/* Top search & dropdowns */}
+        {/* Search + dropdowns */}
         <div className="flex flex-col sm:flex-row gap-3">
           {/* Search Box */}
           <div className="relative flex-1">
@@ -211,7 +204,7 @@ export default function HomeExplorerClient({ initialVehicles }: HomeExplorerClie
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search make, model, generation (e.g. Porsche, Nevera, V8, FL5)..."
+              placeholder="Search cars, trucks, motorsport..."
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0A0E17] border border-slate-200 dark:border-[#1E293B] text-slate-900 dark:text-white placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#31bacc] transition-all"
             />
             {searchQuery && (
@@ -230,7 +223,7 @@ export default function HomeExplorerClient({ initialVehicles }: HomeExplorerClie
               value={selectedDrivetrain}
               onChange={(e) => setSelectedDrivetrain(e.target.value)}
               aria-label="Filter by drivetrain"
-              className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0A0E17] border border-slate-200 dark:border-[#1E293B] text-slate-900 dark:text-white text-xs font-mono font-medium focus:outline-none focus:ring-2 focus:ring-[#31bacc]"
+              className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0A0E17] border border-slate-200 dark:border-[#1E293B] text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#31bacc]"
             >
               <option value="All">Drivetrain: All</option>
               {DRIVETRAINS.filter((d) => d !== 'All').map((d) => (
@@ -247,7 +240,7 @@ export default function HomeExplorerClient({ initialVehicles }: HomeExplorerClie
               value={selectedSort}
               onChange={(e) => setSelectedSort(e.target.value)}
               aria-label="Sort vehicles"
-              className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0A0E17] border border-slate-200 dark:border-[#1E293B] text-slate-900 dark:text-white text-xs font-mono font-medium focus:outline-none focus:ring-2 focus:ring-[#31bacc]"
+              className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0A0E17] border border-slate-200 dark:border-[#1E293B] text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#31bacc]"
             >
               {SORTS.map((s) => (
                 <option key={s.value} value={s.value}>
@@ -258,30 +251,28 @@ export default function HomeExplorerClient({ initialVehicles }: HomeExplorerClie
           </div>
         </div>
 
-        {/* Domain Tabs with Counts */}
-        <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 pt-1 no-scrollbar">
+        {/* Domain pill tabs — YouTube style */}
+        <div className="flex items-center space-x-2 overflow-x-auto pb-1 pt-1 no-scrollbar">
           {DOMAINS.map((domain) => {
             const count = domainCounts[domain.value] || 0;
             const isActive = selectedDomain === domain.value;
-            const Icon = domain.icon;
 
             return (
               <button
                 key={domain.value}
                 onClick={() => setSelectedDomain(domain.value)}
-                className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${
+                className={`flex items-center space-x-1.5 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
                   isActive
-                    ? 'bg-slate-900 text-white dark:bg-white dark:text-black font-bold shadow-xs'
-                    : 'bg-slate-50 dark:bg-[#0A0E17] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#151D2E]'
+                    ? 'bg-slate-900 text-white dark:bg-white dark:text-black'
+                    : 'bg-slate-100 dark:bg-[#1E293B] text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-[#263148]'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-[#31bacc]' : 'text-slate-400'}`} />
                 <span>{domain.label}</span>
                 <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                  className={`text-xs ${
                     isActive
-                      ? 'bg-white/20 dark:bg-black/20 text-white dark:text-black'
-                      : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
+                      ? 'text-white/70 dark:text-black/60'
+                      : 'text-slate-400 dark:text-slate-500'
                   }`}
                 >
                   {count}
@@ -291,6 +282,13 @@ export default function HomeExplorerClient({ initialVehicles }: HomeExplorerClie
           })}
         </div>
       </div>
+
+      {/* Result count */}
+      {(searchQuery || selectedDomain !== 'All' || selectedDrivetrain !== 'All') && (
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+          Showing {filteredVehicles.length} {filteredVehicles.length === 1 ? 'vehicle' : 'vehicles'}
+        </p>
+      )}
 
       {/* Fleet Grid */}
       {filteredVehicles.length > 0 ? (
@@ -307,7 +305,7 @@ export default function HomeExplorerClient({ initialVehicles }: HomeExplorerClie
           <h3 className="text-base font-bold text-slate-900 dark:text-white">
             No vehicles match your criteria
           </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+          <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
             Try adjusting your search terms, changing the domain filter, or resetting your filter controls.
           </p>
           <button
@@ -317,9 +315,9 @@ export default function HomeExplorerClient({ initialVehicles }: HomeExplorerClie
               setSelectedDrivetrain('All');
               setSelectedSort('most_voted');
             }}
-            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-[#0A0E17] hover:bg-slate-200 border border-slate-200 dark:border-[#1E293B] transition-colors"
+            className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-900 dark:text-white bg-slate-100 dark:bg-[#0A0E17] hover:bg-slate-200 border border-slate-200 dark:border-[#1E293B] transition-colors"
           >
-            Reset All Filters
+            Reset filters
           </button>
         </div>
       )}
