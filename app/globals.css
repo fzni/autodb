@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-inter: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Crisp, Minimal Light Theme (Default) */
+  --bg-color: #F8FAFC;
+  --surface-deep: #F1F5F9;
+  --card-color: #FFFFFF;
+  --card-hover: #F8FAFC;
+  --border-color: #E2E8F0;
+  --border-accent: #31bacc;
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+  --accent-cyan: #31bacc;
+  --accent-cyan-glow: rgba(49, 186, 204, 0.2);
+  --accent-emerald: #10B981;
+}
+
+.dark {
+  /* Sleek Minimal Dark Studio */
+  --bg-color: #0A0E17;
+  --surface-deep: #06090F;
+  --card-color: #101623;
+  --card-hover: #151D2E;
+  --border-color: #1E293B;
+  --border-accent: #31bacc;
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --accent-cyan: #31bacc;
+  --accent-cyan-glow: rgba(49, 186, 204, 0.25);
+  --accent-emerald: #10B981;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  font-family: var(--font-inter);
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Subtle, clean grid */
+.telemetry-grid {
+  background-size: 28px 28px;
+  background-image: 
+    linear-gradient(to right, rgba(49, 186, 204, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(49, 186, 204, 0.05) 1px, transparent 1px);
+}
+
+.dark .telemetry-grid {
+  background-image: 
+    linear-gradient(to right, rgba(49, 186, 204, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(49, 186, 204, 0.04) 1px, transparent 1px);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #31bacc;
+}
