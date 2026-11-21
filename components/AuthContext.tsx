@@ -7,6 +7,9 @@ export interface AuthUser {
   handle: string;
   secret_key?: string;
   role?: 'admin' | 'contributor';
+  email?: string;
+  email_verified?: number;
+  key_fingerprint?: string;
 }
 
 interface AuthContextType {
@@ -23,7 +26,8 @@ interface AuthContextType {
   openAdminModal: () => void;
   closeAdminModal: () => void;
   loginWithSecretKey: (secretKey: string) => Promise<{ ok: boolean; error?: string }>;
-  registerWithHandle: (handle: string) => Promise<{ ok: boolean; error?: string; secretKey?: string }>;
+  registerWithHandle: (handle: string, email?: string) => Promise<{ ok: boolean; error?: string; secretKey?: string }>;
+  refreshUser: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -41,6 +45,7 @@ const AuthContext = createContext<AuthContextType>({
   closeAdminModal: () => {},
   loginWithSecretKey: async () => ({ ok: false }),
   registerWithHandle: async () => ({ ok: false }),
+  refreshUser: async () => {},
   logout: async () => {},
 });
 
@@ -109,12 +114,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const registerWithHandle = async (handle: string): Promise<{ ok: boolean; error?: string; secretKey?: string }> => {
+  const registerWithHandle = async (handle: string, email?: string): Promise<{ ok: boolean; error?: string; secretKey?: string }> => {
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ handle }),
+        body: JSON.stringify({ handle, email }),
       });
 
       const data = await res.json();
@@ -128,6 +133,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err: any) {
       return { ok: false, error: err.message || 'Connection error during registration' };
     }
+  };
+
+  const refreshUser = async () => {
+    await checkAuth();
   };
 
   const logout = async () => {
@@ -156,6 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         closeAdminModal: closeAuthModal,
         loginWithSecretKey,
         registerWithHandle,
+        refreshUser,
         logout,
       }}
     >

@@ -60,6 +60,11 @@ export async function POST(req: NextRequest) {
       powertrain,
       chassis,
       domain_specific,
+      source_url,
+      downforce_kg,
+      downforce_speed_kmh,
+      drag_coefficient,
+      frontal_area_m2,
     } = body;
 
     if (!make || !model || !year || !domain || !hero_image) {
@@ -111,6 +116,11 @@ export async function POST(req: NextRequest) {
       domain_specific: domain_specific || {},
       contributor_handle: user.handle,
       contributor_fingerprint: user.key_fingerprint || 'KEY:ADMIN',
+      source_url: source_url ? String(source_url).trim() : undefined,
+      downforce_kg: downforce_kg !== undefined && downforce_kg !== '' ? Number(downforce_kg) : undefined,
+      downforce_speed_kmh: downforce_speed_kmh !== undefined && downforce_speed_kmh !== '' ? Number(downforce_speed_kmh) : undefined,
+      drag_coefficient: drag_coefficient !== undefined && drag_coefficient !== '' ? Number(drag_coefficient) : undefined,
+      frontal_area_m2: frontal_area_m2 !== undefined && frontal_area_m2 !== '' ? Number(frontal_area_m2) : undefined,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };

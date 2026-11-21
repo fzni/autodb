@@ -1,7 +1,18 @@
 import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
 import fs from 'node:fs';
-import { Vehicle, User, Session, Challenge, Comment } from './types';
+import {
+  Vehicle,
+  User,
+  Session,
+  Challenge,
+  Comment,
+  Collection,
+  CollectionItem,
+  SpecRevision,
+  BrandSummary,
+  Domain,
+} from './types';
 import { STARTER_VEHICLES } from './seed-data';
 import { DEMO_ADMIN_KEY } from './demo-admin';
 
@@ -92,16 +103,56 @@ export function getDb(): DatabaseSync {
       content TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS collections (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      is_public INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS collection_items (
+      id TEXT PRIMARY KEY,
+      collection_id TEXT NOT NULL,
+      vehicle_slug TEXT NOT NULL,
+      added_at TEXT NOT NULL,
+      UNIQUE(collection_id, vehicle_slug),
+      FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS spec_revisions (
+      id TEXT PRIMARY KEY,
+      vehicle_slug TEXT NOT NULL,
+      proposer_handle TEXT NOT NULL,
+      proposer_fingerprint TEXT NOT NULL,
+      changes_json TEXT NOT NULL,
+      change_summary TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      reviewer_handle TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
   `);
 
-  // Migrations
-  try {
-    db.exec("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'contributor';");
-  } catch (e) {}
+  // Non-destructive safe migrations
+  try { db.exec("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'contributor';"); } catch (e) {}
+  try { db.exec("ALTER TABLE users ADD COLUMN secret_key TEXT;"); } catch (e) {}
+  try { db.exec("ALTER TABLE users ADD COLUMN email TEXT;"); } catch (e) {}
+  try { db.exec("ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0;"); } catch (e) {}
+  try { db.exec("ALTER TABLE users ADD COLUMN email_verify_token TEXT;"); } catch (e) {}
+  try { db.exec("ALTER TABLE users ADD COLUMN email_verify_expires INTEGER;"); } catch (e) {}
 
-  try {
-    db.exec("ALTER TABLE users ADD COLUMN secret_key TEXT;");
-  } catch (e) {}
+  try { db.exec("ALTER TABLE vehicles ADD COLUMN source_url TEXT;"); } catch (e) {}
+  try { db.exec("ALTER TABLE vehicles ADD COLUMN downforce_kg REAL;"); } catch (e) {}
+  try { db.exec("ALTER TABLE vehicles ADD COLUMN downforce_speed_kmh REAL;"); } catch (e) {}
+  try { db.exec("ALTER TABLE vehicles ADD COLUMN drag_coefficient REAL;"); } catch (e) {}
+  try { db.exec("ALTER TABLE vehicles ADD COLUMN frontal_area_m2 REAL;"); } catch (e) {}
+  try { db.exec("ALTER TABLE vehicles ADD COLUMN contributors TEXT;"); } catch (e) {}
+  try { db.exec("ALTER TABLE vehicles ADD COLUMN last_edited_by TEXT;"); } catch (e) {}
 
   // Auto-seed admin user if @admin does not exist
   try {
@@ -251,6 +302,19 @@ export function parseVehicleRow(row: any): Vehicle {
     domain_specific: typeof row.domain_specific === 'string' ? JSON.parse(row.domain_specific) : row.domain_specific,
     contributor_handle: row.contributor_handle,
     contributor_fingerprint: row.contributor_fingerprint,
+    source_url: row.source_url || undefined,
+    downforce_kg: row.downforce_kg !== null && row.downforce_kg !== undefined ? Number(row.downforce_kg) : undefined,
+    downforce_speed_kmh: row.downforce_speed_kmh !== null && row.downforce_speed_kmh !== undefined ? Number(row.downforce_speed_kmh) : undefined,
+    drag_coefficient: row.drag_coefficient !== null && row.drag_coefficient !== undefined ? Number(row.drag_coefficient) : undefined,
+    frontal_area_m2: row.frontal_area_m2 !== null && row.frontal_area_m2 !== undefined ? Number(row.frontal_area_m2) : undefined,
+    contributors: row.contributors
+      ? typeof row.contributors === 'string'
+        ? JSON.parse(row.contributors)
+        : row.contributors
+      : row.contributor_handle
+      ? [row.contributor_handle]
+      : [],
+    last_edited_by: row.last_edited_by || undefined,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -262,6 +326,8 @@ export function getAllVehicles(
     drivetrain?: string;
     query?: string;
     sort?: string;
+    make?: string;
+    layout?: string;
   },
   currentUserId?: string
 ): Vehicle[] {
@@ -272,6 +338,11 @@ export function getAllVehicles(
   if (filters?.domain && filters.domain !== 'All') {
     sql += ' AND domain = ?';
     params.push(filters.domain);
+  }
+
+  if (filters?.make && filters.make !== 'All') {
+    sql += ' AND LOWER(make) = LOWER(?)';
+    params.push(filters.make);
   }
 
   if (filters?.query && filters.query.trim().length > 0) {
@@ -300,6 +371,17 @@ export function getAllVehicles(
   if (filters?.drivetrain && filters.drivetrain !== 'All') {
     vehicles = vehicles.filter(
       (v) => v.powertrain?.drivetrain?.toUpperCase() === filters.drivetrain?.toUpperCase()
+    );
+  }
+
+  // Filter by engine layout/architecture if requested
+  if (filters?.layout && filters.layout !== 'All') {
+    const target = filters.layout.toLowerCase();
+    vehicles = vehicles.filter(
+      (v) =>
+        v.powertrain?.layout?.toLowerCase().includes(target) ||
+        v.powertrain?.engine_type?.toLowerCase().includes(target) ||
+        v.powertrain?.aspiration?.toLowerCase().includes(target)
     );
   }
 
@@ -364,8 +446,10 @@ export function createVehicle(v: Vehicle): Vehicle {
     INSERT INTO vehicles (
       id, slug, make, model, generation, year, domain, sub_category,
       hero_image, summary, powertrain, chassis, domain_specific,
-      contributor_handle, contributor_fingerprint, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      contributor_handle, contributor_fingerprint,
+      source_url, downforce_kg, downforce_speed_kmh, drag_coefficient, frontal_area_m2,
+      created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   insert.run(
@@ -384,6 +468,11 @@ export function createVehicle(v: Vehicle): Vehicle {
     JSON.stringify(v.domain_specific),
     v.contributor_handle,
     v.contributor_fingerprint,
+    v.source_url || null,
+    v.downforce_kg !== undefined ? v.downforce_kg : null,
+    v.downforce_speed_kmh !== undefined ? v.downforce_speed_kmh : null,
+    v.drag_coefficient !== undefined ? v.drag_coefficient : null,
+    v.frontal_area_m2 !== undefined ? v.frontal_area_m2 : null,
     v.created_at,
     v.updated_at
   );
@@ -406,6 +495,8 @@ export function updateVehicle(slug: string, v: Partial<Vehicle>): Vehicle | null
     UPDATE vehicles SET
       make = ?, model = ?, generation = ?, year = ?, domain = ?, sub_category = ?,
       hero_image = ?, summary = ?, powertrain = ?, chassis = ?, domain_specific = ?,
+      source_url = ?, downforce_kg = ?, downforce_speed_kmh = ?, drag_coefficient = ?, frontal_area_m2 = ?,
+      contributors = ?, last_edited_by = ?,
       updated_at = ?
     WHERE slug = ?
   `);
@@ -422,6 +513,13 @@ export function updateVehicle(slug: string, v: Partial<Vehicle>): Vehicle | null
     JSON.stringify(updated.powertrain),
     JSON.stringify(updated.chassis),
     JSON.stringify(updated.domain_specific),
+    updated.source_url || null,
+    updated.downforce_kg !== undefined ? updated.downforce_kg : null,
+    updated.downforce_speed_kmh !== undefined ? updated.downforce_speed_kmh : null,
+    updated.drag_coefficient !== undefined ? updated.drag_coefficient : null,
+    updated.frontal_area_m2 !== undefined ? updated.frontal_area_m2 : null,
+    updated.contributors ? JSON.stringify(updated.contributors) : null,
+    updated.last_edited_by || null,
     updated.updated_at,
     slug
   );
@@ -591,6 +689,22 @@ export function getOrCreateAdminUser(): User {
   };
 }
 
+export function parseUserRow(row: any): User {
+  return {
+    id: row.id,
+    handle: row.handle,
+    public_key_jwk: row.public_key_jwk || '',
+    key_fingerprint: row.key_fingerprint || '',
+    secret_key: row.secret_key || '',
+    role: row.role || (row.handle.toLowerCase() === '@admin' ? 'admin' : 'contributor'),
+    email: row.email || undefined,
+    email_verified: row.email_verified ? 1 : 0,
+    email_verify_token: row.email_verify_token || undefined,
+    email_verify_expires: row.email_verify_expires ? Number(row.email_verify_expires) : undefined,
+    created_at: row.created_at,
+  };
+}
+
 export function getUserBySecretKey(secretKey: string): User | null {
   if (!secretKey) return null;
   const cleanKey = secretKey.trim();
@@ -604,16 +718,10 @@ export function getUserBySecretKey(secretKey: string): User | null {
   const row = db.prepare('SELECT * FROM users WHERE secret_key = ?').get(cleanKey) as any;
   if (!row) return null;
 
-  return {
-    id: row.id,
-    handle: row.handle,
-    secret_key: row.secret_key,
-    role: row.role || (row.handle.toLowerCase() === '@admin' ? 'admin' : 'contributor'),
-    created_at: row.created_at,
-  } as User;
+  return parseUserRow(row);
 }
 
-export function registerUser(handle: string): { user: User; secretKey: string } {
+export function registerUser(handle: string, email?: string): { user: User; secretKey: string } {
   const db = getDb();
   let cleanHandle = handle.trim();
   if (!cleanHandle.startsWith('@')) {
@@ -625,6 +733,14 @@ export function registerUser(handle: string): { user: User; secretKey: string } 
     throw new Error(`Handle ${cleanHandle} is already registered. Please choose another handle or log in with your existing Secret Key.`);
   }
 
+  const cleanEmail = email && email.trim() ? email.trim().toLowerCase() : null;
+  if (cleanEmail) {
+    const emailCheck = db.prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(?)').get(cleanEmail) as any;
+    if (emailCheck) {
+      throw new Error(`Email ${cleanEmail} is already associated with another account.`);
+    }
+  }
+
   const id = 'usr_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
   const randPart1 = Math.random().toString(36).substring(2, 6).toUpperCase();
   const randPart2 = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -634,8 +750,8 @@ export function registerUser(handle: string): { user: User; secretKey: string } 
   const created_at = new Date().toISOString();
 
   db.prepare(`
-    INSERT INTO users (id, handle, public_key_jwk, key_fingerprint, secret_key, role, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO users (id, handle, public_key_jwk, key_fingerprint, secret_key, role, email, email_verified, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)
   `).run(
     id,
     cleanHandle,
@@ -643,6 +759,7 @@ export function registerUser(handle: string): { user: User; secretKey: string } 
     `KEY:${randPart1}`,
     secretKey,
     'contributor',
+    cleanEmail,
     created_at
   );
 
@@ -651,6 +768,8 @@ export function registerUser(handle: string): { user: User; secretKey: string } 
     handle: cleanHandle,
     secret_key: secretKey,
     role: 'contributor',
+    email: cleanEmail || undefined,
+    email_verified: 0,
     created_at,
   };
 
@@ -662,30 +781,34 @@ export function getUserByHandle(handle: string): User | null {
   const normalized = handle.startsWith('@') ? handle : `@${handle}`;
   const row = db.prepare('SELECT * FROM users WHERE LOWER(handle) = LOWER(?)').get(normalized) as any;
   if (!row) return null;
-  return {
-    ...row,
-    role: row.role || (row.handle.toLowerCase() === '@admin' ? 'admin' : 'contributor'),
-  } as User;
+  return parseUserRow(row);
 }
 
 export function getUserById(id: string): User | null {
   const db = getDb();
   const row = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as any;
   if (!row) return null;
-  return {
-    ...row,
-    role: row.role || (row.handle.toLowerCase() === '@admin' ? 'admin' : 'contributor'),
-  } as User;
+  return parseUserRow(row);
 }
 
 export function createUser(user: User): User {
   const db = getDb();
   const role = user.role || (user.handle.toLowerCase() === '@admin' ? 'admin' : 'contributor');
   const stmt = db.prepare(`
-    INSERT INTO users (id, handle, public_key_jwk, key_fingerprint, secret_key, role, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO users (id, handle, public_key_jwk, key_fingerprint, secret_key, role, email, email_verified, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  stmt.run(user.id, user.handle, user.public_key_jwk || '', user.key_fingerprint || '', user.secret_key || '', role, user.created_at);
+  stmt.run(
+    user.id,
+    user.handle,
+    user.public_key_jwk || '',
+    user.key_fingerprint || '',
+    user.secret_key || '',
+    role,
+    user.email || null,
+    user.email_verified ? 1 : 0,
+    user.created_at
+  );
   return { ...user, role };
 }
 
@@ -746,7 +869,8 @@ export function getSession(token: string): { session: Session; user: User } | nu
   const now = Date.now();
   const row = db.prepare(`
     SELECT s.id as session_id, s.user_id, s.expires_at, s.created_at as session_created_at,
-           u.id as u_id, u.handle, u.public_key_jwk, u.key_fingerprint, u.secret_key, u.role, u.created_at as user_created_at
+           u.id as u_id, u.handle, u.public_key_jwk, u.key_fingerprint, u.secret_key, u.role,
+           u.email, u.email_verified, u.email_verify_token, u.email_verify_expires, u.created_at as user_created_at
     FROM sessions s
     JOIN users u ON s.user_id = u.id
     WHERE s.id = ? AND s.expires_at > ?
@@ -768,6 +892,10 @@ export function getSession(token: string): { session: Session; user: User } | nu
       key_fingerprint: row.key_fingerprint,
       secret_key: row.secret_key,
       role: row.role || (row.handle.toLowerCase() === '@admin' ? 'admin' : 'contributor'),
+      email: row.email || undefined,
+      email_verified: row.email_verified ? 1 : 0,
+      email_verify_token: row.email_verify_token || undefined,
+      email_verify_expires: row.email_verify_expires ? Number(row.email_verify_expires) : undefined,
       created_at: row.user_created_at,
     },
   };
@@ -776,4 +904,390 @@ export function getSession(token: string): { session: Session; user: User } | nu
 export function deleteSession(token: string): void {
   const db = getDb();
   db.prepare('DELETE FROM sessions WHERE id = ?').run(token);
+}
+
+// ── Email Verification ────────────────────────────────────────────────────────
+export function setUserEmailAndToken(userId: string, email: string, token: string, expiresAt: number): void {
+  const db = getDb();
+  db.prepare(`
+    UPDATE users
+    SET email = ?, email_verify_token = ?, email_verify_expires = ?, email_verified = 0
+    WHERE id = ?
+  `).run(email.trim().toLowerCase(), token, expiresAt, userId);
+}
+
+export function verifyEmailByToken(token: string): User | null {
+  const db = getDb();
+  const now = Date.now();
+  const row = db.prepare(`
+    SELECT * FROM users
+    WHERE email_verify_token = ? AND email_verify_expires > ?
+  `).get(token, now) as any;
+
+  if (!row) return null;
+
+  db.prepare(`
+    UPDATE users
+    SET email_verified = 1, email_verify_token = NULL, email_verify_expires = NULL
+    WHERE id = ?
+  `).run(row.id);
+
+  return getUserById(row.id);
+}
+
+export function verifyEmailByCode(userId: string, code: string): User | null {
+  const db = getDb();
+  const now = Date.now();
+  const row = db.prepare(`
+    SELECT * FROM users
+    WHERE id = ? AND email_verify_token = ? AND email_verify_expires > ?
+  `).get(userId, code.trim(), now) as any;
+
+  if (!row) return null;
+
+  db.prepare(`
+    UPDATE users
+    SET email_verified = 1, email_verify_token = NULL, email_verify_expires = NULL
+    WHERE id = ?
+  `).run(row.id);
+
+  return getUserById(row.id);
+}
+
+// ── Brand Summaries & Related Rivals ───────────────────────────────────────────
+export function getAllBrands(): BrandSummary[] {
+  const db = getDb();
+  try {
+    const rows = db.prepare(`
+      SELECT make, COUNT(*) as count, GROUP_CONCAT(DISTINCT domain) as domains, MAX(hero_image) as hero_image
+      FROM vehicles
+      GROUP BY make
+      ORDER BY count DESC, make ASC
+    `).all() as any[];
+
+    return rows.map((r) => ({
+      make: r.make,
+      count: Number(r.count),
+      domains: r.domains ? (r.domains.split(',') as Domain[]) : [],
+      hero_image: r.hero_image,
+    }));
+  } catch (e) {
+    return [];
+  }
+}
+
+export function getRelatedRivals(vehicle: Vehicle, limit = 4): Vehicle[] {
+  const allInDomain = getAllVehicles({ domain: vehicle.domain });
+  const selfWeight = vehicle.chassis?.curb_weight_kg || 0;
+  const selfRatio = selfWeight > 0 ? (vehicle.powertrain?.hp || 0) / (selfWeight / 1000) : 0;
+
+  const candidates = allInDomain
+    .filter((v) => v.slug !== vehicle.slug)
+    .map((v) => {
+      const w = v.chassis?.curb_weight_kg || 0;
+      const ratio = w > 0 ? (v.powertrain?.hp || 0) / (w / 1000) : 0;
+      const diffPercent = selfRatio > 0 ? Math.abs(ratio - selfRatio) / selfRatio : 1;
+      return { vehicle: v, diffPercent };
+    });
+
+  // Sort by closest power-to-weight ratio
+  candidates.sort((a, b) => a.diffPercent - b.diffPercent);
+
+  return candidates.slice(0, limit).map((c) => c.vehicle);
+}
+
+// ── Garage Collections (Bookmarks & Custom Lists) ─────────────────────────────
+export function createCollection(userId: string, name: string, description = '', isPublic = 1): Collection {
+  const db = getDb();
+  const id = 'col_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+  const now = new Date().toISOString();
+  db.prepare(`
+    INSERT INTO collections (id, user_id, name, description, is_public, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(id, userId, name.trim(), description.trim(), isPublic ? 1 : 0, now, now);
+
+  return {
+    id,
+    user_id: userId,
+    name: name.trim(),
+    description: description.trim(),
+    is_public: isPublic ? 1 : 0,
+    created_at: now,
+    updated_at: now,
+    items_count: 0,
+    vehicles: [],
+  };
+}
+
+export function getUserCollections(userId: string): Collection[] {
+  const db = getDb();
+  try {
+    const rows = db.prepare(`
+      SELECT c.*, COUNT(ci.id) as items_count
+      FROM collections c
+      LEFT JOIN collection_items ci ON c.id = ci.collection_id
+      WHERE c.user_id = ?
+      GROUP BY c.id
+      ORDER BY c.created_at DESC
+    `).all(userId) as any[];
+
+    return rows.map((r) => ({
+      id: r.id,
+      user_id: r.user_id,
+      name: r.name,
+      description: r.description,
+      is_public: r.is_public,
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+      items_count: Number(r.items_count) || 0,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export function getPublicCollectionsByUserId(userId: string): Collection[] {
+  const db = getDb();
+  try {
+    const rows = db.prepare(`
+      SELECT c.*, COUNT(ci.id) as items_count
+      FROM collections c
+      LEFT JOIN collection_items ci ON c.id = ci.collection_id
+      WHERE c.user_id = ? AND c.is_public = 1
+      GROUP BY c.id
+      ORDER BY c.created_at DESC
+    `).all(userId) as any[];
+
+    return rows.map((r) => ({
+      id: r.id,
+      user_id: r.user_id,
+      name: r.name,
+      description: r.description,
+      is_public: r.is_public,
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+      items_count: Number(r.items_count) || 0,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export function addVehicleToCollection(collectionId: string, vehicleSlug: string): boolean {
+  const db = getDb();
+  const id = 'ci_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+  const now = new Date().toISOString();
+  try {
+    db.prepare(`
+      INSERT INTO collection_items (id, collection_id, vehicle_slug, added_at)
+      VALUES (?, ?, ?, ?)
+    `).run(id, collectionId, vehicleSlug, now);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function removeVehicleFromCollection(collectionId: string, vehicleSlug: string): boolean {
+  const db = getDb();
+  db.prepare(`
+    DELETE FROM collection_items
+    WHERE collection_id = ? AND vehicle_slug = ?
+  `).run(collectionId, vehicleSlug);
+  return true;
+}
+
+export function getCollectionWithVehicles(collectionId: string): Collection | null {
+  const db = getDb();
+  const row = db.prepare('SELECT * FROM collections WHERE id = ?').get(collectionId) as any;
+  if (!row) return null;
+
+  const itemRows = db.prepare(`
+    SELECT v.* FROM collection_items ci
+    JOIN vehicles v ON ci.vehicle_slug = v.slug
+    WHERE ci.collection_id = ?
+    ORDER BY ci.added_at DESC
+  `).all(collectionId) as any[];
+
+  const vehicles = itemRows.map(parseVehicleRow);
+
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    name: row.name,
+    description: row.description,
+    is_public: row.is_public,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    items_count: vehicles.length,
+    vehicles,
+  };
+}
+
+export function deleteCollection(collectionId: string, userId: string): boolean {
+  const db = getDb();
+  const check = db.prepare('SELECT id FROM collections WHERE id = ? AND user_id = ?').get(collectionId, userId);
+  if (!check) return false;
+  db.prepare('DELETE FROM collections WHERE id = ?').run(collectionId);
+  return true;
+}
+
+// ── Spec Revisions (Proposals & Moderation) ──────────────────────────────────
+export function createSpecRevision(
+  vehicleSlug: string,
+  proposerHandle: string,
+  proposerFingerprint: string,
+  changesJson: string,
+  changeSummary: string
+): SpecRevision {
+  const db = getDb();
+  const id = 'rev_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+  const now = new Date().toISOString();
+
+  db.prepare(`
+    INSERT INTO spec_revisions (
+      id, vehicle_slug, proposer_handle, proposer_fingerprint,
+      changes_json, change_summary, status, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+  `).run(id, vehicleSlug, proposerHandle, proposerFingerprint, changesJson, changeSummary, now, now);
+
+  return {
+    id,
+    vehicle_slug: vehicleSlug,
+    proposer_handle: proposerHandle,
+    proposer_fingerprint: proposerFingerprint,
+    changes_json: changesJson,
+    change_summary: changeSummary,
+    status: 'pending',
+    created_at: now,
+    updated_at: now,
+  };
+}
+
+export function getSpecRevisions(filter?: { vehicleSlug?: string; status?: string; proposerHandle?: string }): SpecRevision[] {
+  const db = getDb();
+  let sql = 'SELECT * FROM spec_revisions WHERE 1=1';
+  const params: any[] = [];
+
+  if (filter?.vehicleSlug) {
+    sql += ' AND vehicle_slug = ?';
+    params.push(filter.vehicleSlug);
+  }
+  if (filter?.status) {
+    sql += ' AND status = ?';
+    params.push(filter.status);
+  }
+  if (filter?.proposerHandle) {
+    sql += ' AND LOWER(proposer_handle) = LOWER(?)';
+    params.push(filter.proposerHandle);
+  }
+
+  sql += ' ORDER BY created_at DESC';
+  const rows = db.prepare(sql).all(...params) as any[];
+
+  return rows.map((r) => {
+    let vehicleName = '';
+    let vehicleHeroImage = '';
+    try {
+      const v = db.prepare('SELECT make, model, hero_image FROM vehicles WHERE slug = ?').get(r.vehicle_slug) as any;
+      if (v) {
+        vehicleName = `${v.make} ${v.model}`;
+        vehicleHeroImage = v.hero_image || '';
+      }
+    } catch (e) {}
+
+    return {
+      id: r.id,
+      vehicle_slug: r.vehicle_slug,
+      proposer_handle: r.proposer_handle,
+      proposer_fingerprint: r.proposer_fingerprint,
+      changes_json: r.changes_json,
+      change_summary: r.change_summary,
+      status: r.status,
+      reviewer_handle: r.reviewer_handle || undefined,
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+      vehicle_name: vehicleName || r.vehicle_slug,
+      vehicle_hero_image: vehicleHeroImage,
+    };
+  });
+}
+
+export function getPendingRevisionsCount(): number {
+  const db = getDb();
+  try {
+    const res = db.prepare("SELECT COUNT(*) as count FROM spec_revisions WHERE status = 'pending'").get() as any;
+    return res?.count || 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function getSpecRevisionById(id: string): SpecRevision | null {
+  const db = getDb();
+  const row = db.prepare('SELECT * FROM spec_revisions WHERE id = ?').get(id) as any;
+  if (!row) return null;
+  return {
+    id: row.id,
+    vehicle_slug: row.vehicle_slug,
+    proposer_handle: row.proposer_handle,
+    proposer_fingerprint: row.proposer_fingerprint,
+    changes_json: row.changes_json,
+    change_summary: row.change_summary,
+    status: row.status,
+    reviewer_handle: row.reviewer_handle || undefined,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+export function updateSpecRevisionStatus(
+  id: string,
+  status: 'approved' | 'rejected',
+  reviewerHandle: string,
+  modifiedChanges?: Record<string, any>
+): boolean {
+  const db = getDb();
+  const revision = getSpecRevisionById(id);
+  if (!revision) return false;
+
+  const now = new Date().toISOString();
+  let changesToApply: Record<string, any> = {};
+  try {
+    changesToApply = modifiedChanges || JSON.parse(revision.changes_json);
+  } catch {
+    changesToApply = modifiedChanges || {};
+  }
+
+  db.prepare(`
+    UPDATE spec_revisions
+    SET status = ?, reviewer_handle = ?, changes_json = ?, updated_at = ?
+    WHERE id = ?
+  `).run(status, reviewerHandle, JSON.stringify(changesToApply), now, id);
+
+  if (status === 'approved') {
+    try {
+      const vehicle = getVehicleBySlug(revision.vehicle_slug);
+      if (vehicle) {
+        // Collect contributors list
+        const existingContributors = Array.isArray(vehicle.contributors) ? [...vehicle.contributors] : [];
+        if (vehicle.contributor_handle && !existingContributors.includes(vehicle.contributor_handle)) {
+          existingContributors.unshift(vehicle.contributor_handle);
+        }
+        if (revision.proposer_handle && !existingContributors.includes(revision.proposer_handle)) {
+          existingContributors.push(revision.proposer_handle);
+        }
+
+        updateVehicle(revision.vehicle_slug, {
+          ...changesToApply,
+          contributors: existingContributors,
+          last_edited_by: revision.proposer_handle,
+        });
+      }
+    } catch (e) {
+      console.error('Failed to apply approved revision changes:', e);
+    }
+  }
+
+  return true;
 }

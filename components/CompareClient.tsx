@@ -1,9 +1,19 @@
-'use client';
+﻿'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Vehicle } from '@/lib/types';
 import { useCompare } from './CompareContext';
+import { useUnits } from './UnitContext';
+import {
+  convertPower,
+  convertTorque,
+  convertWeight,
+  convertSpeed,
+  convertLength,
+  convertDisplacement,
+} from '@/lib/units';
 import {
   Columns,
   Trash2,
@@ -16,6 +26,8 @@ import {
   ChevronRight,
   X,
   Search,
+  Filter,
+  Trophy,
 } from 'lucide-react';
 
 interface CompareClientProps {
@@ -23,9 +35,42 @@ interface CompareClientProps {
 }
 
 export default function CompareClient({ allVehicles }: CompareClientProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { compareVehicles, removeFromCompare, clearCompare, toggleCompare } = useCompare();
+  const { unitSystem } = useUnits();
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchPicker, setSearchPicker] = useState('');
+  const [highlightDifferencesOnly, setHighlightDifferencesOnly] = useState(false);
+
+  // Sync initial vehicles from URL ?v=slug1,slug2
+  const initializedFromUrl = useRef(false);
+  useEffect(() => {
+    if (initializedFromUrl.current) return;
+    initializedFromUrl.current = true;
+
+    const vParam = searchParams.get('v');
+    if (vParam) {
+      const slugs = vParam.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+      slugs.forEach((slug) => {
+        const matchingVehicle = allVehicles.find((v) => v.slug.toLowerCase() === slug);
+        if (matchingVehicle && !compareVehicles.some((cv) => cv.slug === matchingVehicle.slug)) {
+          toggleCompare(matchingVehicle);
+        }
+      });
+    }
+  }, [searchParams, allVehicles]);
+
+  // Sync selected vehicles to URL ?v=slug1,slug2 without page refresh
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const slugs = compareVehicles.map((v) => v.slug).join(',');
+    const newUrl = slugs ? `/compare?v=${slugs}` : '/compare';
+    if (window.location.pathname + window.location.search !== newUrl) {
+      window.history.replaceState(null, '', newUrl);
+    }
+  }, [compareVehicles]);
 
   const getWinnerIndex = (
     values: (number | null | undefined)[],
@@ -94,42 +139,64 @@ export default function CompareClient({ allVehicles }: CompareClientProps) {
     );
   });
 
+  // Helper to determine if row has differences across compared vehicles
+  const isRowDifferent = (values: any[]) => {
+    if (values.length <= 1) return true;
+    const first = JSON.stringify(values[0]);
+    return values.some((val) => JSON.stringify(val) !== first);
+  };
+
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-24 bg-[#F8FAFC] dark:bg-[#0B1220]">
       {/* Top Header */}
-      <section className="bg-white dark:bg-[#0A0E17] border-b border-slate-200/80 dark:border-slate-800 py-8 transition-colors">
+      <section className="bg-white dark:bg-[#080D18] border-b border-slate-200/80 dark:border-[#1A2435] py-8 transition-colors">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <Link
                 href="/"
-                className="inline-flex items-center space-x-1.5 text-sm font-medium text-slate-500 hover:text-slate-900 dark:hover:text-white mb-2 transition-colors"
+                className="inline-flex items-center space-x-1.5 text-xs font-semibold text-slate-500 hover:text-[#E11D48] mb-2 transition-colors"
               >
-                <ArrowLeft className="w-4 h-4" />
+                <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Back to vehicles</span>
               </Link>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                Compare vehicles
+                Compare Vehicles
               </h1>
-              <p className="text-sm text-slate-500 mt-1">
+              <p className="text-xs text-slate-500 mt-1 font-mono">
                 Side-by-side spec comparison for up to 3 machines. Best numbers highlighted in green.
               </p>
             </div>
 
             {compareVehicles.length > 0 && (
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Highlight Differences Only Toggle */}
+                <button
+                  type="button"
+                  onClick={() => setHighlightDifferencesOnly(!highlightDifferencesOnly)}
+                  className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-mono transition-all cursor-pointer border ${
+                    highlightDifferencesOnly
+                      ? 'bg-[#E11D48]/15 border-[#E11D48] text-[#BE123C] dark:text-[#E11D48] font-bold'
+                      : 'bg-slate-50 dark:bg-[#0F1623] border-slate-200 dark:border-[#1A2435] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Filter className="w-3.5 h-3.5" />
+                  <span>Differences only</span>
+                </button>
+
                 {compareVehicles.length < 3 && (
                   <button
                     onClick={() => setShowAddModal(true)}
-                    className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-full bg-slate-900 dark:bg-white text-white dark:text-black text-xs font-semibold hover:opacity-90 transition-all shadow-xs"
+                    className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 dark:bg-black text-white text-xs font-mono font-bold hover:bg-slate-800 transition-all shadow-xs border border-slate-700 dark:border-[#E11D48]/30 cursor-pointer"
                   >
-                    <Plus className="w-4 h-4" />
-                    <span>Add vehicle ({compareVehicles.length}/3)</span>
+                    <Plus className="w-3.5 h-3.5 text-[#E11D48]" />
+                    <span>Add ({compareVehicles.length}/3)</span>
                   </button>
                 )}
+
                 <button
                   onClick={clearCompare}
-                  className="inline-flex items-center space-x-1 px-3 py-2 rounded-full border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 text-xs font-medium transition-colors"
+                  className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-[#1A2435] bg-white dark:bg-[#0F1623] text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 text-xs font-medium transition-colors cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>Clear</span>
@@ -144,30 +211,30 @@ export default function CompareClient({ allVehicles }: CompareClientProps) {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
         {compareVehicles.length === 0 ? (
           /* Empty Compare State */
-          <div className="p-12 text-center rounded-2xl bg-white dark:bg-[#101623] border border-slate-200/80 dark:border-slate-800 shadow-xs">
-            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
-              <Scale className="w-6 h-6" />
+          <div className="p-12 text-center rounded-2xl bg-white dark:bg-[#0F1623] border border-slate-200/80 dark:border-[#1A2435] shadow-xs">
+            <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-slate-100 dark:bg-[#0B1220] border border-slate-200 dark:border-[#1A2435] flex items-center justify-center text-slate-500">
+              <Scale className="w-6 h-6 text-[#E11D48]" />
             </div>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">
               No vehicles selected
             </h3>
-            <p className="text-xs text-slate-500 max-w-md mx-auto mb-6">
-              Pick vehicles from the fleet or tap one of the suggested matchups below to see them head-to-head.
+            <p className="text-xs text-slate-500 max-w-md mx-auto mb-6 font-sans">
+              Pick vehicles from the fleet or select a matchup below to view side-by-side specs
             </p>
 
             <div className="max-w-xl mx-auto">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-3">
-                Suggested matchups:
+              <span className="text-[11px] font-mono uppercase text-slate-400 tracking-wider block mb-3 font-semibold">
+                Suggested Matchups:
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-left">
                 {allVehicles.slice(0, 4).map((v) => (
                   <button
                     key={v.id}
                     onClick={() => toggleCompare(v)}
-                    className="p-3 rounded-xl bg-slate-50 dark:bg-[#0A0E17] border border-slate-200/80 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 flex items-center justify-between group transition-all"
+                    className="p-3 rounded-xl bg-slate-50 dark:bg-[#0B1220] border border-slate-200/80 dark:border-[#1A2435] hover:border-[#E11D48]/60 flex items-center justify-between group transition-all cursor-pointer"
                   >
                     <div>
-                      <span className="text-[10px] text-[#177f8d] dark:text-[#31bacc] font-semibold block">
+                      <span className="text-[10px] text-[#BE123C] dark:text-[#E11D48] font-semibold font-mono block">
                         {v.domain} · {v.year}
                       </span>
                       <span className="text-xs font-bold text-slate-900 dark:text-white">
@@ -177,7 +244,7 @@ export default function CompareClient({ allVehicles }: CompareClientProps) {
                         {v.powertrain.hp} HP · {v.chassis.curb_weight_kg} kg
                       </span>
                     </div>
-                    <div className="p-1.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 group-hover:bg-[#31bacc] group-hover:text-black transition-colors">
+                    <div className="p-1.5 rounded-lg bg-slate-200 dark:bg-[#1A2435] text-slate-700 dark:text-slate-200 group-hover:bg-[#E11D48] group-hover:text-black transition-colors">
                       <Plus className="w-3.5 h-3.5" />
                     </div>
                   </button>
@@ -187,10 +254,10 @@ export default function CompareClient({ allVehicles }: CompareClientProps) {
               <div className="mt-6">
                 <Link
                   href="/"
-                  className="px-5 py-2.5 rounded-full bg-slate-900 dark:bg-white text-white dark:text-black hover:opacity-90 text-xs font-semibold inline-flex items-center space-x-1.5 transition-all shadow-xs"
+                  className="px-5 py-2.5 rounded-xl bg-slate-900 dark:bg-black hover:bg-slate-800 text-white text-xs font-bold font-mono inline-flex items-center space-x-1.5 transition-all shadow-xs border border-slate-700 dark:border-[#E11D48]/30"
                 >
                   <span>Explore full fleet</span>
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="w-4 h-4 text-[#E11D48]" />
                 </Link>
               </div>
             </div>
@@ -203,9 +270,9 @@ export default function CompareClient({ allVehicles }: CompareClientProps) {
               {compareVehicles.map((vehicle) => (
                 <div
                   key={vehicle.id}
-                  className="rounded-2xl bg-white dark:bg-[#101623] border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs flex flex-col"
+                  className="rounded-2xl bg-white dark:bg-[#0F1623] border border-slate-200/80 dark:border-[#1A2435] overflow-hidden shadow-xs flex flex-col"
                 >
-                  <div className="relative aspect-video w-full bg-slate-100 dark:bg-[#0A0E17]">
+                  <div className="relative aspect-video w-full bg-slate-100 dark:bg-[#0B1220]">
                     <img
                       src={vehicle.hero_image}
                       alt={vehicle.model}
@@ -213,12 +280,12 @@ export default function CompareClient({ allVehicles }: CompareClientProps) {
                     />
                     <button
                       onClick={() => removeFromCompare(vehicle.slug)}
-                      className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-black/60 hover:bg-rose-600 text-white transition-colors"
+                      className="absolute top-2.5 right-2.5 p-1.5 rounded-xl bg-black/70 hover:bg-rose-600 text-white transition-colors cursor-pointer"
                       title="Remove from comparison"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
-                    <span className="absolute bottom-2.5 left-2.5 px-2 py-0.5 rounded text-[11px] font-medium bg-slate-900/80 text-white backdrop-blur-sm">
+                    <span className="absolute bottom-2.5 left-2.5 px-2 py-0.5 rounded-md text-[10px] font-mono font-medium bg-black/80 text-white backdrop-blur-xs">
                       {vehicle.year} · {vehicle.domain}
                     </span>
                   </div>
@@ -227,7 +294,7 @@ export default function CompareClient({ allVehicles }: CompareClientProps) {
                     <div>
                       <Link
                         href={`/vehicles/${vehicle.slug}`}
-                        className="text-base font-bold text-slate-900 dark:text-white hover:text-[#31bacc] transition-colors line-clamp-1"
+                        className="text-base font-bold text-slate-900 dark:text-white hover:text-[#E11D48] transition-colors line-clamp-1"
                       >
                         {vehicle.make} {vehicle.model}
                       </Link>
@@ -241,236 +308,286 @@ export default function CompareClient({ allVehicles }: CompareClientProps) {
             </div>
 
             {/* Spec Matrix */}
-            <div className="rounded-2xl bg-white dark:bg-[#101623] border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-slate-50 dark:bg-[#0A0E17] border-b border-slate-200/80 dark:border-slate-800 text-slate-500 text-xs font-semibold">
-                  <tr>
-                    <th className="p-3.5 w-1/4">Metric</th>
-                    {compareVehicles.map((v) => (
-                      <th key={v.id} className="p-3.5 text-slate-900 dark:text-white font-bold">
-                        {v.make} {v.model}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-sans">
-                  {/* Power Output HP */}
-                  <tr>
-                    <td className="p-3.5 text-slate-500 font-medium">Power output</td>
-                    {compareVehicles.map((v, idx) => {
-                      const isWinner = hpWinner === idx;
-                      return (
-                        <td key={v.id} className="p-3.5">
-                          <span
-                            className={`px-2 py-0.5 rounded font-bold font-mono ${
-                              isWinner
-                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-black'
-                                : 'text-slate-900 dark:text-white'
-                            }`}
-                          >
-                            {v.powertrain.hp} HP
-                          </span>
-                        </td>
-                      );
-                    })}
-                  </tr>
-
-                  {/* Kilowatts */}
-                  <tr>
-                    <td className="p-3.5 text-slate-500 font-medium">Output (kW)</td>
-                    {compareVehicles.map((v, idx) => {
-                      const isWinner = kwWinner === idx;
-                      return (
-                        <td key={v.id} className="p-3.5">
-                          <span
-                            className={`px-2 py-0.5 rounded font-mono ${
-                              isWinner
-                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold'
-                                : 'text-slate-900 dark:text-white'
-                            }`}
-                          >
-                            {v.powertrain.kw} kW
-                          </span>
-                        </td>
-                      );
-                    })}
-                  </tr>
+            <div className="rounded-2xl bg-white dark:bg-[#0F1623] border border-slate-200/80 dark:border-[#1A2435] overflow-hidden shadow-xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left min-w-[580px]">
+                  <thead className="bg-slate-50 dark:bg-[#080D18] border-b border-slate-200/80 dark:border-[#1A2435] text-slate-500 text-xs font-mono uppercase font-semibold">
+                    <tr>
+                      <th className="p-3.5 w-1/4">Spec</th>
+                      {compareVehicles.map((v) => (
+                        <th key={v.id} className="p-3.5 text-slate-900 dark:text-white font-bold">
+                          {v.make} {v.model}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-sans">
+                  {/* Power Output */}
+                  {(!highlightDifferencesOnly || isRowDifferent(hpValues)) && (
+                    <tr>
+                      <td className="p-3.5 text-slate-500 font-medium">Power Output</td>
+                      {compareVehicles.map((v, idx) => {
+                        const isWinner = hpWinner === idx;
+                        return (
+                          <td key={v.id} className="p-3.5">
+                            <span
+                              className={`px-2 py-0.5 rounded font-mono ${
+                                isWinner
+                                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-black'
+                                  : 'text-slate-900 dark:text-white font-semibold'
+                              }`}
+                            >
+                              {convertPower(v.powertrain.hp, v.powertrain.kw, unitSystem).label}
+                              {isWinner && <span className="ml-1 text-[10px]">★</span>}
+                            </span>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  )}
 
                   {/* Torque */}
-                  <tr>
-                    <td className="p-3.5 text-slate-500 font-medium">Peak torque</td>
-                    {compareVehicles.map((v, idx) => {
-                      const isWinner = torqueWinner === idx;
-                      return (
-                        <td key={v.id} className="p-3.5">
-                          <span
-                            className={`px-2 py-0.5 rounded font-mono ${
-                              isWinner
-                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold'
-                                : 'text-slate-900 dark:text-white'
-                            }`}
-                          >
-                            {v.powertrain.torque_nm} Nm
-                          </span>
-                        </td>
-                      );
-                    })}
-                  </tr>
+                  {(!highlightDifferencesOnly || isRowDifferent(torqueValues)) && (
+                    <tr>
+                      <td className="p-3.5 text-slate-500 font-medium">Peak Torque</td>
+                      {compareVehicles.map((v, idx) => {
+                        const isWinner = torqueWinner === idx;
+                        return (
+                          <td key={v.id} className="p-3.5">
+                            <span
+                              className={`px-2 py-0.5 rounded font-mono ${
+                                isWinner
+                                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-black'
+                                  : 'text-slate-900 dark:text-white'
+                              }`}
+                            >
+                              {convertTorque(v.powertrain.torque_nm, unitSystem).label}
+                              {isWinner && <span className="ml-1 text-[10px]">★</span>}
+                            </span>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  )}
 
                   {/* Curb Weight */}
-                  <tr>
-                    <td className="p-3.5 text-slate-500 font-medium">Curb weight</td>
-                    {compareVehicles.map((v, idx) => {
-                      const isWinner = weightWinner === idx;
-                      return (
-                        <td key={v.id} className="p-3.5">
-                          <span
-                            className={`px-2 py-0.5 rounded font-mono ${
-                              isWinner
-                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold'
-                                : 'text-slate-900 dark:text-white'
-                            }`}
-                          >
-                            {v.chassis.curb_weight_kg.toLocaleString()} kg
-                          </span>
-                        </td>
-                      );
-                    })}
-                  </tr>
-
-                  {/* Power-to-Weight HP/Ton */}
-                  <tr>
-                    <td className="p-3.5 text-slate-500 font-medium">Power-to-weight</td>
-                    {compareVehicles.map((v, idx) => {
-                      const isWinner = ratioWinner === idx;
-                      const ratio = v.chassis.curb_weight_kg
-                        ? (v.powertrain.hp / (v.chassis.curb_weight_kg / 1000)).toFixed(1)
-                        : '—';
-                      return (
-                        <td key={v.id} className="p-3.5">
-                          <span
-                            className={`px-2 py-0.5 rounded font-mono font-bold ${
-                              isWinner
-                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-black'
-                                : 'text-[#177f8d] dark:text-[#31bacc]'
-                            }`}
-                          >
-                            {ratio} HP/t
-                          </span>
-                        </td>
-                      );
-                    })}
-                  </tr>
-
-                  {/* 0-100 km/h (if available) */}
-                  <tr>
-                    <td className="p-3.5 text-slate-500 font-medium">0–100 km/h</td>
-                    {compareVehicles.map((v, idx) => {
-                      const isWinner = zeroToHundredWinner === idx;
-                      const val = v.domain_specific?.zero_to_hundred_sec;
-                      return (
-                        <td key={v.id} className="p-3.5">
-                          {val ? (
+                  {(!highlightDifferencesOnly || isRowDifferent(weightValues)) && (
+                    <tr>
+                      <td className="p-3.5 text-slate-500 font-medium">Curb Weight</td>
+                      {compareVehicles.map((v, idx) => {
+                        const isWinner = weightWinner === idx;
+                        return (
+                          <td key={v.id} className="p-3.5">
                             <span
                               className={`px-2 py-0.5 rounded font-mono ${
                                 isWinner
-                                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold'
+                                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-black'
                                   : 'text-slate-900 dark:text-white'
                               }`}
                             >
-                              {val} s
+                              {convertWeight(v.chassis.curb_weight_kg, unitSystem).label}
+                              {isWinner && <span className="ml-1 text-[10px]">★</span>}
                             </span>
-                          ) : (
-                            <span className="text-slate-400">—</span>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  )}
 
-                  {/* Top Speed (if available) */}
-                  <tr>
-                    <td className="p-3.5 text-slate-500 font-medium">Top speed</td>
-                    {compareVehicles.map((v, idx) => {
-                      const isWinner = topSpeedWinner === idx;
-                      const val = v.domain_specific?.top_speed_kmh;
-                      return (
-                        <td key={v.id} className="p-3.5">
-                          {val ? (
+                  {/* Power-to-Weight */}
+                  {(!highlightDifferencesOnly || isRowDifferent(ratioValues)) && (
+                    <tr>
+                      <td className="p-3.5 text-slate-500 font-medium">Power-to-Weight</td>
+                      {compareVehicles.map((v, idx) => {
+                        const isWinner = ratioWinner === idx;
+                        const ratio = v.chassis.curb_weight_kg
+                          ? (v.powertrain.hp / (v.chassis.curb_weight_kg / 1000)).toFixed(1)
+                          : '—';
+                        return (
+                          <td key={v.id} className="p-3.5">
                             <span
                               className={`px-2 py-0.5 rounded font-mono ${
                                 isWinner
-                                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold'
-                                  : 'text-slate-900 dark:text-white'
+                                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-black'
+                                  : 'text-[#BE123C] dark:text-[#E11D48] font-bold'
                               }`}
                             >
-                              {val} km/h
+                              {ratio} HP/t
+                              {isWinner && <span className="ml-1 text-[10px]">★</span>}
                             </span>
-                          ) : (
-                            <span className="text-slate-400">—</span>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  )}
+
+                  {/* 0–100 km/h */}
+                  {(!highlightDifferencesOnly || isRowDifferent(zeroToHundredValues)) && (
+                    <tr>
+                      <td className="p-3.5 text-slate-500 font-medium">0–100 km/h</td>
+                      {compareVehicles.map((v, idx) => {
+                        const isWinner = zeroToHundredWinner === idx;
+                        const val = v.domain_specific?.zero_to_hundred_sec;
+                        return (
+                          <td key={v.id} className="p-3.5">
+                            {val ? (
+                              <span
+                                className={`px-2 py-0.5 rounded font-mono ${
+                                  isWinner
+                                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-black'
+                                    : 'text-slate-900 dark:text-white'
+                                }`}
+                              >
+                                {val} s
+                                {isWinner && <span className="ml-1 text-[10px]">★</span>}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 font-mono">—</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  )}
+
+                  {/* Top Speed */}
+                  {(!highlightDifferencesOnly || isRowDifferent(topSpeedValues)) && (
+                    <tr>
+                      <td className="p-3.5 text-slate-500 font-medium">Top Speed</td>
+                      {compareVehicles.map((v, idx) => {
+                        const isWinner = topSpeedWinner === idx;
+                        const val = v.domain_specific?.top_speed_kmh;
+                        return (
+                          <td key={v.id} className="p-3.5">
+                            {val ? (
+                              <span
+                                className={`px-2 py-0.5 rounded font-mono ${
+                                  isWinner
+                                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-black'
+                                    : 'text-slate-900 dark:text-white'
+                                }`}
+                              >
+                                {convertSpeed(val, unitSystem).label}
+                                {isWinner && <span className="ml-1 text-[10px]">★</span>}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 font-mono">—</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  )}
 
                   {/* Redline RPM */}
-                  <tr>
-                    <td className="p-3.5 text-slate-500 font-medium">Redline</td>
-                    {compareVehicles.map((v, idx) => {
-                      const isWinner = redlineWinner === idx;
-                      const val = v.powertrain?.redline_rpm;
-                      return (
-                        <td key={v.id} className="p-3.5">
-                          {val ? (
-                            <span
-                              className={`px-2 py-0.5 rounded font-mono ${
-                                isWinner
-                                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold'
-                                  : 'text-slate-900 dark:text-white'
-                              }`}
-                            >
-                              {val.toLocaleString()} RPM
-                            </span>
-                          ) : (
-                            <span className="text-slate-400">—</span>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
+                  {(!highlightDifferencesOnly || isRowDifferent(redlineValues)) && (
+                    <tr>
+                      <td className="p-3.5 text-slate-500 font-medium">Redline</td>
+                      {compareVehicles.map((v, idx) => {
+                        const isWinner = redlineWinner === idx;
+                        const val = v.powertrain?.redline_rpm;
+                        return (
+                          <td key={v.id} className="p-3.5">
+                            {val ? (
+                              <span
+                                className={`px-2 py-0.5 rounded font-mono ${
+                                  isWinner
+                                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-black'
+                                    : 'text-slate-900 dark:text-white'
+                                }`}
+                              >
+                                {val.toLocaleString()} RPM
+                                {isWinner && <span className="ml-1 text-[10px]">★</span>}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 font-mono">—</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  )}
 
                   {/* Drivetrain */}
-                  <tr>
-                    <td className="p-3.5 text-slate-500 font-medium">Drivetrain</td>
-                    {compareVehicles.map((v) => (
-                      <td key={v.id} className="p-3.5 text-slate-900 dark:text-white font-semibold">
-                        {v.powertrain.drivetrain}
-                      </td>
-                    ))}
-                  </tr>
+                  {(!highlightDifferencesOnly || isRowDifferent(compareVehicles.map((v) => v.powertrain.drivetrain))) && (
+                    <tr>
+                      <td className="p-3.5 text-slate-500 font-medium">Drivetrain</td>
+                      {compareVehicles.map((v) => (
+                        <td key={v.id} className="p-3.5 text-slate-900 dark:text-white font-mono font-semibold">
+                          {v.powertrain.drivetrain}
+                        </td>
+                      ))}
+                    </tr>
+                  )}
+
+                  {/* Layout */}
+                  {(!highlightDifferencesOnly || isRowDifferent(compareVehicles.map((v) => v.powertrain.layout))) && (
+                    <tr>
+                      <td className="p-3.5 text-slate-500 font-medium">Engine Layout</td>
+                      {compareVehicles.map((v) => (
+                        <td key={v.id} className="p-3.5 text-slate-700 dark:text-slate-300">
+                          {v.powertrain.layout || '—'}
+                        </td>
+                      ))}
+                    </tr>
+                  )}
 
                   {/* Aspiration */}
-                  <tr>
-                    <td className="p-3.5 text-slate-500 font-medium">Aspiration</td>
-                    {compareVehicles.map((v) => (
-                      <td key={v.id} className="p-3.5 text-slate-700 dark:text-slate-300">
-                        {v.powertrain.aspiration}
-                      </td>
-                    ))}
-                  </tr>
+                  {(!highlightDifferencesOnly || isRowDifferent(compareVehicles.map((v) => v.powertrain.aspiration))) && (
+                    <tr>
+                      <td className="p-3.5 text-slate-500 font-medium">Aspiration</td>
+                      {compareVehicles.map((v) => (
+                        <td key={v.id} className="p-3.5 text-slate-700 dark:text-slate-300">
+                          {v.powertrain.aspiration}
+                        </td>
+                      ))}
+                    </tr>
+                  )}
 
                   {/* Transmission */}
-                  <tr>
-                    <td className="p-3.5 text-slate-500 font-medium">Transmission</td>
-                    {compareVehicles.map((v) => (
-                      <td key={v.id} className="p-3.5 text-slate-700 dark:text-slate-300">
-                        {v.powertrain.transmission}
-                      </td>
-                    ))}
-                  </tr>
+                  {(!highlightDifferencesOnly || isRowDifferent(compareVehicles.map((v) => v.powertrain.transmission))) && (
+                    <tr>
+                      <td className="p-3.5 text-slate-500 font-medium">Transmission</td>
+                      {compareVehicles.map((v) => (
+                        <td key={v.id} className="p-3.5 text-slate-700 dark:text-slate-300">
+                          {v.powertrain.transmission}
+                        </td>
+                      ))}
+                    </tr>
+                  )}
+
+                  {/* Aerodynamics Drag Coefficient */}
+                  {(!highlightDifferencesOnly || isRowDifferent(compareVehicles.map((v) => v.drag_coefficient || v.domain_specific?.drag_coefficient))) && (
+                    <tr>
+                      <td className="p-3.5 text-slate-500 font-medium">Drag Coefficient (Cd)</td>
+                      {compareVehicles.map((v) => {
+                        const cd = v.drag_coefficient || v.domain_specific?.drag_coefficient;
+                        return (
+                          <td key={v.id} className="p-3.5 font-mono text-slate-900 dark:text-white">
+                            {cd !== undefined ? `${cd} Cd` : '—'}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  )}
+
+                  {/* Aerodynamic Downforce */}
+                  {(!highlightDifferencesOnly || isRowDifferent(compareVehicles.map((v) => v.downforce_kg || v.domain_specific?.aero_downforce_kg))) && (
+                    <tr>
+                      <td className="p-3.5 text-slate-500 font-medium">Downforce</td>
+                      {compareVehicles.map((v) => {
+                        const df = v.downforce_kg || v.domain_specific?.aero_downforce_kg;
+                        return (
+                          <td key={v.id} className="p-3.5 font-mono text-slate-900 dark:text-white">
+                            {df ? `${df} kg` : '—'}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  )}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         )}
@@ -478,13 +595,13 @@ export default function CompareClient({ allVehicles }: CompareClientProps) {
 
       {/* Add Machine Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="relative w-full max-w-lg rounded-2xl bg-white dark:bg-[#101623] border border-slate-200/80 dark:border-slate-800 shadow-2xl p-6 text-slate-900 dark:text-white">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="font-bold text-base">Select a vehicle to compare</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
+          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-[#0F1623] border border-slate-200/80 dark:border-[#1A2435] shadow-2xl p-5 sm:p-6 text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[#1A2435]">
+              <h3 className="font-bold text-base font-mono">Select a vehicle to compare</h3>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -497,7 +614,7 @@ export default function CompareClient({ allVehicles }: CompareClientProps) {
                 value={searchPicker}
                 onChange={(e) => setSearchPicker(e.target.value)}
                 placeholder="Search by make, model, or category..."
-                className="w-full pl-9 pr-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-[#0A0E17] border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-[#31bacc]"
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-[#0B1220] border border-slate-200 dark:border-[#1A2435] focus:outline-none focus:ring-2 focus:ring-[#E11D48] font-sans"
               />
             </div>
 
@@ -509,17 +626,17 @@ export default function CompareClient({ allVehicles }: CompareClientProps) {
                     toggleCompare(v);
                     setShowAddModal(false);
                   }}
-                  className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-[#0A0E17] hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-slate-200/70 dark:border-slate-800 flex items-center justify-between transition-colors text-left"
+                  className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-[#0B1220] hover:bg-slate-100 dark:hover:bg-[#1A2435] border border-slate-200/70 dark:border-[#1A2435] flex items-center justify-between transition-colors text-left cursor-pointer"
                 >
                   <div>
-                    <span className="text-[10px] text-[#177f8d] dark:text-[#31bacc] font-semibold">
+                    <span className="text-[10px] text-[#BE123C] dark:text-[#E11D48] font-semibold font-mono">
                       {v.domain} · {v.year}
                     </span>
                     <span className="block text-xs font-bold text-slate-900 dark:text-white">
                       {v.make} {v.model}
                     </span>
                   </div>
-                  <Plus className="w-4 h-4 text-[#31bacc]" />
+                  <Plus className="w-4 h-4 text-[#E11D48]" />
                 </button>
               ))}
             </div>

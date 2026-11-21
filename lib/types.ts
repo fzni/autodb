@@ -1,5 +1,7 @@
 export type Domain = 'Road' | 'Commercial' | 'Motorsport' | 'Concept';
 
+export type UnitSystem = 'metric' | 'imperial';
+
 export interface PowertrainSpec {
   engine_type: string;
   displacement_l?: number;
@@ -72,6 +74,13 @@ export interface Vehicle {
   domain_specific: DomainSpecificSpec;
   contributor_handle: string;
   contributor_fingerprint: string;
+  contributors?: string[];
+  last_edited_by?: string;
+  source_url?: string;
+  downforce_kg?: number;
+  downforce_speed_kmh?: number;
+  drag_coefficient?: number;
+  frontal_area_m2?: number;
   votes_count?: number;
   has_voted?: boolean;
   comments_count?: number;
@@ -94,6 +103,10 @@ export interface User {
   key_fingerprint?: string;
   secret_key?: string;
   role: 'admin' | 'contributor';
+  email?: string;
+  email_verified?: number; // 0 = unverified, 1 = verified
+  email_verify_token?: string;
+  email_verify_expires?: number;
   created_at: string;
 }
 
@@ -108,4 +121,47 @@ export interface Challenge {
   nonce: string;
   user_handle: string;
   expires_at: number;
+}
+
+export interface Collection {
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string;
+  is_public: number;
+  created_at: string;
+  updated_at: string;
+  items_count?: number;
+  vehicles?: Vehicle[];
+}
+
+export interface CollectionItem {
+  id: string;
+  collection_id: string;
+  vehicle_slug: string;
+  added_at: string;
+  vehicle?: Vehicle;
+}
+
+export interface SpecRevision {
+  id: string;
+  vehicle_slug: string;
+  proposer_handle: string;
+  proposer_fingerprint: string;
+  changes_json: string;
+  change_summary: string;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewer_handle?: string;
+  created_at: string;
+  updated_at: string;
+  vehicle?: Vehicle;
+  vehicle_name?: string;
+  vehicle_hero_image?: string;
+}
+
+export interface BrandSummary {
+  make: string;
+  count: number;
+  domains: Domain[];
+  hero_image: string;
 }

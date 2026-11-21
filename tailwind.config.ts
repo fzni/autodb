@@ -1,4 +1,4 @@
-import type { Config } from "tailwindcss";
+﻿import type { Config } from "tailwindcss";
 import plugin from "tailwindcss/plugin";
 
 const config: Config = {
@@ -11,42 +11,42 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        cyan: {
-          DEFAULT: "#31bacc",
-          50: "#edfcfd",
-          100: "#d3f7fa",
-          200: "#aceef5",
-          300: "#74e0ee",
-          400: "#31bacc", // User's requested theme color!
-          500: "#189faf",
-          600: "#167f90",
-          700: "#176776",
-          800: "#1a535f",
-          900: "#1a4651",
-          950: "#0c2e37",
+        red: {
+          DEFAULT: "#E11D48",
+          50: "#fff1f2",
+          100: "#ffe4e6",
+          200: "#fecdd3",
+          300: "#fda4af",
+          400: "#fb7185",
+          500: "#f43f5e",
+          600: "#e11d48",
+          700: "#be123c",
+          800: "#9f1239",
+          900: "#881337",
+          950: "#4c0519",
         },
         studio: {
           black: "#050709",
-          deep: "#090D13",
-          card: "#0E131B",
-          cardHover: "#131A24",
-          border: "#1A2332",
+          deep: "#080D18",
+          card: "#0F1623",
+          cardHover: "#141B2A",
+          border: "#1A2435",
           borderHover: "#2C3B52",
-          cyan: "#31bacc",
+          red: "#E11D48",
           emerald: "#10B981",
-          rose: "#F43F5E",
+          rose: "#E11D48",
           amber: "#F59E0B",
           text: "#F8FAFC",
           muted: "#8493A8",
         },
       },
       fontFamily: {
-        sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
-        mono: ["JetBrains Mono", "ui-monospace", "SFMono-Regular", "monospace"],
+        sans: ["var(--font-geist-sans)", "Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+        mono: ["var(--font-geist-mono)", "JetBrains Mono", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       boxShadow: {
-        cyanGlow: "0 0 25px rgba(49, 186, 204, 0.25)",
-        cyanSubtle: "0 0 15px rgba(49, 186, 204, 0.12)",
+        redGlow: "0 0 25px rgba(225, 29, 72, 0.25)",
+        redSubtle: "0 0 15px rgba(225, 29, 72, 0.12)",
       },
     },
   },

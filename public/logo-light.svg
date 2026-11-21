@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 64" fill="none">
+  <!-- Left Emblem (48x48 centered at y=8) -->
+  <g transform="translate(8, 8)">
+    <rect x="0" y="0" width="48" height="48" rx="13" fill="#0B1220" stroke="#1A2435" stroke-width="1.5"/>
+    <path fill="#FFFFFF" d="M7.5 36 L7.5 25.5 Q7.5 22.5 10.5 21.75 L15 20.25 L17.25 14.25 Q18 12 21 12 L27 12 Q30 12 30.75 14.25 L33 20.25 L37.5 21.75 Q40.5 22.5 40.5 25.5 L40.5 36 Q40.5 37.5 39 37.5 L9 37.5 Q7.5 37.5 7.5 36 Z"/>
+    <g fill="#0B1220">
+      <path d="M18 20.25 L30 20.25 L28.5 15 Q28.125 13.5 26.25 13.5 L21.75 13.5 Q19.875 13.5 19.5 15 Z"/>
+      <rect x="9.75" y="24.75" width="6.75" height="3" rx="1.5"/>
+      <rect x="31.5" y="24.75" width="6.75" height="3" rx="1.5"/>
+    </g>
+    <g fill="#0B1220">
+      <rect x="12" y="29.25" width="3" height="5.25" rx="0.75"/>
+      <rect x="17.25" y="27.75" width="3" height="6.75" rx="0.75"/>
+      <rect x="27.75" y="27.75" width="3" height="6.75" rx="0.75"/>
+      <rect x="33" y="29.25" width="3" height="5.25" rx="0.75"/>
+    </g>
+    <rect x="22.5" y="26.25" width="3" height="8.25" rx="0.75" fill="#E11D48"/>
+  </g>
+
+  <!-- Wordmark 'AutoDB' (dark text for light bg) -->
+  <text x="68" y="40" font-family="-apple-system, BlinkMacSystemFont, 'Geist', 'Segoe UI', Roboto, sans-serif" font-size="26" font-weight="900" letter-spacing="-0.5" fill="#0F172A">
+    Auto<tspan fill="#E11D48">DB</tspan>
+  </text>
+
+  <!-- Beta Tag -->
+  <g transform="translate(182, 22)">
+    <rect width="40" height="19" rx="5" fill="rgba(225, 29, 72, 0.12)" stroke="rgba(225, 29, 72, 0.3)" stroke-width="1"/>
+    <text x="20" y="13.5" font-family="'Geist Mono', ui-monospace, monospace" font-size="10.5" font-weight="700" letter-spacing="0.5" fill="#BE123C" text-anchor="middle">
+      BETA
+    </text>
+  </g>
+</svg>

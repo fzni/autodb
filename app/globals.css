@@ -1,66 +1,108 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --font-inter: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  --font-geist-sans: var(--font-geist-sans, 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  --font-geist-mono: var(--font-geist-mono, 'Geist Mono', ui-monospace, SFMono-Regular, monospace);
 
-  /* Crisp, Minimal Light Theme (Default) */
+  /* Light Theme */
   --bg-color: #F8FAFC;
   --surface-deep: #F1F5F9;
   --card-color: #FFFFFF;
   --card-hover: #F8FAFC;
   --border-color: #E2E8F0;
-  --border-accent: #31bacc;
+  --border-accent: #E11D48;
   --text-primary: #0F172A;
   --text-secondary: #475569;
   --text-muted: #94A3B8;
-  --accent-cyan: #31bacc;
-  --accent-cyan-glow: rgba(49, 186, 204, 0.2);
+  --accent-cyan: #E11D48;
+  --accent-cyan-glow: rgba(225, 29, 72, 0.2);
   --accent-emerald: #10B981;
 }
 
 .dark {
-  /* Sleek Minimal Dark Studio */
-  --bg-color: #0A0E17;
-  --surface-deep: #06090F;
-  --card-color: #101623;
-  --card-hover: #151D2E;
-  --border-color: #1E293B;
-  --border-accent: #31bacc;
+  /* Dark Theme */
+  --bg-color: #0B1220;
+  --surface-deep: #080D18;
+  --card-color: #0F1623;
+  --card-hover: #141B2A;
+  --border-color: #1A2435;
+  --border-accent: #E11D48;
   --text-primary: #F8FAFC;
   --text-secondary: #94A3B8;
   --text-muted: #64748B;
-  --accent-cyan: #31bacc;
-  --accent-cyan-glow: rgba(49, 186, 204, 0.25);
+  --accent-cyan: #E11D48;
+  --accent-cyan-glow: rgba(225, 29, 72, 0.25);
   --accent-emerald: #10B981;
 }
 
 body {
   background-color: var(--bg-color);
   color: var(--text-primary);
-  font-family: var(--font-inter);
+  font-family: var(--font-geist-sans);
   overflow-x: hidden;
   min-height: 100vh;
 }
 
 .font-mono {
-  font-family: var(--font-mono);
+  font-family: var(--font-geist-mono);
 }
 
-/* Subtle, clean grid */
+/* Subtle dot grid for hero sections */
+.dot-grid {
+  background-size: 28px 28px;
+  background-image:
+    linear-gradient(to right, rgba(225, 29, 72, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(225, 29, 72, 0.05) 1px, transparent 1px);
+}
+
+.dark .dot-grid {
+  background-image:
+    linear-gradient(to right, rgba(225, 29, 72, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(225, 29, 72, 0.04) 1px, transparent 1px);
+}
+
 .telemetry-grid {
   background-size: 28px 28px;
-  background-image: 
-    linear-gradient(to right, rgba(49, 186, 204, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(49, 186, 204, 0.05) 1px, transparent 1px);
+  background-image:
+    linear-gradient(to right, rgba(225, 29, 72, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(225, 29, 72, 0.05) 1px, transparent 1px);
 }
 
 .dark .telemetry-grid {
-  background-image: 
-    linear-gradient(to right, rgba(49, 186, 204, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(49, 186, 204, 0.04) 1px, transparent 1px);
+  background-image:
+    linear-gradient(to right, rgba(225, 29, 72, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(225, 29, 72, 0.04) 1px, transparent 1px);
+}
+
+/* Smooth card hover lift */
+.card-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+.dark .card-lift:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-in {
+  animation: fadeIn 0.25s ease forwards;
+}
+
+@keyframes simpleFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.fade-in {
+  animation: simpleFadeIn 0.2s ease forwards;
 }
 
 /* Custom scrollbar */
@@ -68,20 +110,26 @@ body {
   width: 6px;
   height: 6px;
 }
-
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
   background: #CBD5E1;
   border-radius: 9999px;
 }
-
 .dark ::-webkit-scrollbar-thumb {
   background: #334155;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: #31bacc;
+  background: #E11D48;
+}
+
+/* Hide scrollbar for clean horizontal scrolls on mobile */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }

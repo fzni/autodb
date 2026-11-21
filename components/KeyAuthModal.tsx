@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import { useAuth } from './AuthContext';
@@ -30,12 +30,14 @@ export default function KeyAuthModal() {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>(authModalTab || 'login');
   const [secretKey, setSecretKey] = useState('');
   const [handle, setHandle] = useState('');
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Registration success state
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState(false);
+  const [emailNotice, setEmailNotice] = useState<string | null>(null);
 
   // Sync tab from props when opened
   React.useEffect(() => {
@@ -78,12 +80,16 @@ export default function KeyAuthModal() {
 
     setLoading(true);
     setError(null);
+    setEmailNotice(null);
 
-    const res = await registerWithHandle(handle.trim());
+    const res = await registerWithHandle(handle.trim(), email.trim() || undefined);
     setLoading(false);
 
     if (res.ok && res.secretKey) {
       setGeneratedKey(res.secretKey);
+      if (email.trim()) {
+        setEmailNotice(`A 6-digit verification code & link has been sent to ${email.trim()}.`);
+      }
     } else {
       setError(res.error || 'Could not create account. Try a different handle.');
     }
@@ -98,9 +104,9 @@ export default function KeyAuthModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div
-        className="relative w-full max-w-md rounded-2xl bg-white dark:bg-[#101623] border border-slate-200 dark:border-[#1E293B] shadow-2xl p-6 sm:p-7 overflow-hidden text-slate-900 dark:text-white"
+        className="relative w-full max-w-md max-h-[92vh] overflow-y-auto rounded-2xl bg-white dark:bg-[#0F1623] border border-slate-200 dark:border-[#1A2435] shadow-2xl p-5 sm:p-7 text-slate-900 dark:text-white"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
@@ -126,7 +132,7 @@ export default function KeyAuthModal() {
 
         {/* Context Alert Message */}
         {authModalMessage && (
-          <div className="mb-4 p-3 rounded-xl bg-[#31bacc]/10 border border-[#31bacc]/30 text-xs text-[#177f8d] dark:text-[#31bacc] font-medium flex items-center space-x-2">
+          <div className="mb-4 p-3 rounded-xl bg-[#E11D48]/10 border border-[#E11D48]/30 text-xs text-[#BE123C] dark:text-[#E11D48] font-medium flex items-center space-x-2">
             <Lock className="w-3.5 h-3.5 shrink-0" />
             <span>{authModalMessage}</span>
           </div>
@@ -152,8 +158,8 @@ export default function KeyAuthModal() {
               <label className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                 Your secret key
               </label>
-              <div className="flex items-center space-x-2 p-2.5 rounded-xl bg-slate-50 dark:bg-[#0A0E17] border border-slate-200 dark:border-[#1E293B]">
-                <code className="text-xs font-mono font-bold text-[#177f8d] dark:text-[#31bacc] flex-1 truncate">
+              <div className="flex items-center space-x-2 p-2.5 rounded-xl bg-slate-50 dark:bg-[#0B1220] border border-slate-200 dark:border-[#1A2435]">
+                <code className="text-xs font-mono font-bold text-[#BE123C] dark:text-[#E11D48] flex-1 truncate">
                   {generatedKey}
                 </code>
                 <button
@@ -176,10 +182,17 @@ export default function KeyAuthModal() {
               </div>
             </div>
 
+            {emailNotice && (
+              <div className="p-3 rounded-xl bg-[#E11D48]/10 border border-[#E11D48]/30 text-xs text-[#BE123C] dark:text-[#E11D48] flex items-center space-x-2">
+                <ShieldCheck className="w-4 h-4 shrink-0" />
+                <span>{emailNotice}</span>
+              </div>
+            )}
+
             <button
               type="button"
               onClick={closeAuthModal}
-              className="w-full py-2.5 rounded-xl bg-slate-900 dark:bg-black hover:bg-slate-800 text-white text-sm font-semibold transition-all border border-slate-700 dark:border-[#31bacc]/40"
+              className="w-full py-2.5 rounded-xl bg-slate-900 dark:bg-black hover:bg-slate-800 text-white text-sm font-semibold transition-all border border-slate-700 dark:border-[#E11D48]/40"
             >
               Continue
             </button>
@@ -187,7 +200,7 @@ export default function KeyAuthModal() {
         ) : (
           <div>
             {/* Tab Selector */}
-            <div className="flex rounded-xl bg-slate-100 dark:bg-[#0A0E17] p-1 mb-5">
+            <div className="flex rounded-xl bg-slate-100 dark:bg-[#0B1220] p-1 mb-5">
               <button
                 type="button"
                 onClick={() => {
@@ -196,7 +209,7 @@ export default function KeyAuthModal() {
                 }}
                 className={`flex-1 py-1.5 rounded-lg text-sm font-medium transition-all ${
                   activeTab === 'login'
-                    ? 'bg-white dark:bg-[#151D2E] text-slate-900 dark:text-white shadow-xs'
+                    ? 'bg-white dark:bg-[#141B2A] text-slate-900 dark:text-white shadow-xs'
                     : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
@@ -210,7 +223,7 @@ export default function KeyAuthModal() {
                 }}
                 className={`flex-1 py-1.5 rounded-lg text-sm font-medium transition-all ${
                   activeTab === 'register'
-                    ? 'bg-white dark:bg-[#151D2E] text-slate-900 dark:text-white shadow-xs'
+                    ? 'bg-white dark:bg-[#141B2A] text-slate-900 dark:text-white shadow-xs'
                     : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
@@ -239,14 +252,14 @@ export default function KeyAuthModal() {
                     onChange={(e) => setSecretKey(e.target.value)}
                     placeholder="autodb-…"
                     autoFocus
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-[#0A0E17] border border-slate-200 dark:border-[#1E293B] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#31bacc] font-mono"
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-[#0B1220] border border-slate-200 dark:border-[#1A2435] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#E11D48] font-mono"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading || !secretKey.trim()}
-                  className="w-full py-2.5 rounded-xl bg-slate-900 dark:bg-black hover:bg-slate-800 text-white text-sm font-semibold transition-all border border-slate-700 dark:border-[#31bacc]/40 shadow-xs flex items-center justify-center space-x-2 disabled:opacity-50"
+                  className="w-full py-2.5 rounded-xl bg-slate-900 dark:bg-black hover:bg-slate-800 text-white text-sm font-semibold transition-all border border-slate-700 dark:border-[#E11D48]/40 shadow-xs flex items-center justify-center space-x-2 disabled:opacity-50"
                 >
                   <span>{loading ? 'Signing in…' : 'Sign in'}</span>
                 </button>
@@ -258,7 +271,7 @@ export default function KeyAuthModal() {
                       setActiveTab('register');
                       setError(null);
                     }}
-                    className="text-sm text-[#177f8d] dark:text-[#31bacc] hover:underline"
+                    className="text-sm text-[#BE123C] dark:text-[#E11D48] hover:underline"
                   >
                     Don&apos;t have an account? Sign up →
                   </button>
@@ -271,25 +284,43 @@ export default function KeyAuthModal() {
               <form onSubmit={handleRegisterSubmit} className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Choose a handle
+                    Choose a handle *
                   </label>
                   <input
                     type="text"
+                    required
                     value={handle}
                     onChange={(e) => setHandle(e.target.value)}
                     placeholder="e.g. @Alex or @TrackDayPro"
                     autoFocus
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-[#0A0E17] border border-slate-200 dark:border-[#1E293B] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#31bacc]"
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-[#0B1220] border border-slate-200 dark:border-[#1A2435] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#E11D48]"
                   />
                   <p className="text-xs text-slate-400">
                     We&apos;ll generate a unique secret key tied to your handle.
                   </p>
                 </div>
 
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                    <span>Email address</span>
+                    <span className="text-xs text-slate-400 font-normal">Optional</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@domain.com (for verification badge & recovery)"
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-[#0B1220] border border-slate-200 dark:border-[#1A2435] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#E11D48]"
+                  />
+                  <p className="text-xs text-slate-400">
+                    Receive a 6-digit code to get a Verified Contributor badge.
+                  </p>
+                </div>
+
                 <button
                   type="submit"
                   disabled={loading || !handle.trim()}
-                  className="w-full py-2.5 rounded-xl bg-slate-900 dark:bg-black hover:bg-slate-800 text-white text-sm font-semibold transition-all border border-slate-700 dark:border-[#31bacc]/40 shadow-xs flex items-center justify-center space-x-2 disabled:opacity-50"
+                  className="w-full py-2.5 rounded-xl bg-slate-900 dark:bg-black hover:bg-slate-800 text-white text-sm font-semibold transition-all border border-slate-700 dark:border-[#E11D48]/40 shadow-xs flex items-center justify-center space-x-2 disabled:opacity-50"
                 >
                   <span>{loading ? 'Creating account…' : 'Create account'}</span>
                 </button>

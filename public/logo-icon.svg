@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="AutoDB">
+  <rect width="64" height="64" rx="14" fill="#0B1220"/>
+  <path fill="#FFFFFF" d="M10 48 L10 34 Q10 30 14 29 L20 27 L23 19 Q24 16 28 16 L36 16 Q40 16 41 19 L44 27 L50 29 Q54 30 54 34 L54 48 Q54 50 52 50 L12 50 Q10 50 10 48 Z"/>
+  <g fill="#0B1220">
+    <path d="M24 27 L40 27 L38 20 Q37 18 35 18 L29 18 Q27 18 26 20 Z"/>
+    <rect x="13" y="33" width="9" height="4" rx="2"/>
+    <rect x="42" y="33" width="9" height="4" rx="2"/>
+  </g>
+  <g fill="#0B1220">
+    <rect x="16" y="39" width="4" height="7" rx="1"/>
+    <rect x="23" y="37" width="4" height="9" rx="1"/>
+    <rect x="37" y="37" width="4" height="9" rx="1"/>
+    <rect x="44" y="39" width="4" height="7" rx="1"/>
+  </g>
+  <rect x="30" y="35" width="4" height="11" rx="1" fill="#E11D48"/>
+</svg>
