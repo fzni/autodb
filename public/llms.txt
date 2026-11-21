@@ -1,0 +1,21 @@
+# AutoDB — Open Vehicle Specification & Telemetry Engine
+
+> Modern open automotive database cataloguing production road cars, motorsport prototypes, and commercial heavy haulers with verifiable numbers, mechanical loss simulations, and aerodynamic telemetry.
+
+## Core Resources
+- [Browse Fleet](https://autodb.tech/): Full vehicle fleet explorer with filters for drivetrain, power, weight, and domain.
+- [Side-by-Side Comparison](https://autodb.tech/compare): Multi-vehicle benchmarking matrix comparing up to 3 machines simultaneously.
+- [Manufacturer Directory](https://autodb.tech/brands): Catalogued marques and constructors.
+- [User Guide & Documentation](https://autodb.tech/about): Engineering documentation on power-to-weight, drivetrain loss models (FWD 12%, RWD 15%, AWD 20%), aerodynamic lift-to-drag telemetry, and cryptographic ECDSA key authentication.
+- [XML Sitemap](https://autodb.tech/sitemap.xml): Full XML sitemap auto-indexing every vehicle dossier.
+
+## Vehicle Domains
+- **Road**: Production sports cars, supercars, and legendary performance models (e.g. Porsche 911 GT3, Rimac Nevera, Honda Civic Type R).
+- **Motorsport**: Formula 1, WEC Hypercars, and WRC rally machines with verified race telemetry and downforce setups (e.g. Red Bull RB19, Porsche 963).
+- **Commercial**: Heavy prime movers, mining dump haulers, and commercial workhorses (e.g. Scania R770 V8, Caterpillar 797F).
+- **Concept**: Technological design studies, experimental aerodynamics, and propulsion demonstrators (e.g. Mazda Furai).
+
+## Technical Telemetry Models
+- **Power & Mechanical Loss**: Crank HP vs. estimated Wheel HP calculated via drivetrain resistance (FWD ~12%, RWD ~15%, AWD ~20%).
+- **Aerodynamics**: Drag coefficient (Cd), frontal area (m²), benchmark downforce at speed, and lift-to-drag (L/D) ratios.
+- **Global Units**: Real-time conversions between Metric SI and Imperial units (HP/kW, Nm/lb-ft, kg/lbs, km/h/mph).

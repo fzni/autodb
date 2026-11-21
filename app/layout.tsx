@@ -48,11 +48,29 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const jsonLdWebSite = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'AutoDB',
+    url: 'https://autodb.tech',
+    description:
+      'The open vehicle database. Browse specs for road cars, motorsport machines, and commercial vehicles.',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: 'https://autodb.tech/?q={search_term_string}',
+      'query-input': 'required name=search_term_string',
+    },
+  };
+
   return (
     <html lang="en" className="light" suppressHydrationWarning>
       <body
         className={`${GeistSans.variable} ${GeistMono.variable} font-sans min-h-screen bg-[#F8FAFC] dark:bg-[#0B1220] text-slate-900 dark:text-slate-100 antialiased selection:bg-[#E11D48] selection:text-black flex flex-col transition-colors duration-200`}
       >
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdWebSite) }}
+        />
         <ThemeProvider>
           <AuthProvider>
             <UnitProvider>

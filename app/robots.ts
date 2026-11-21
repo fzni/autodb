@@ -5,8 +5,22 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: '*',
-        allow: ['/', '/vehicles/', '/brands', '/compare', '/about', '/u/'],
+        allow: ['/', '/vehicles/', '/brands', '/compare', '/about', '/u/', '/llms.txt'],
         disallow: ['/studio', '/api/', '/_next/'],
+      },
+      // Explicitly invite AI search & answer engines (Perplexity, ChatGPT, Gemini, Claude, Applebot)
+      {
+        userAgent: [
+          'GPTBot',
+          'ChatGPT-User',
+          'PerplexityBot',
+          'ClaudeBot',
+          'Google-Extended',
+          'Applebot-Extended',
+          'cohere-ai',
+        ],
+        allow: ['/', '/vehicles/', '/brands', '/compare', '/about', '/u/', '/llms.txt'],
+        disallow: ['/studio', '/api/'],
       },
     ],
     sitemap: 'https://autodb.tech/sitemap.xml',
